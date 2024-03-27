@@ -10,7 +10,7 @@ def read_requirements():
 
 
 setup(
-    name='npp',
+    name='topic_modeling_tool',
     version='1.0',
     packages=['tm_module'],
     url='',
