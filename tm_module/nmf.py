@@ -59,8 +59,10 @@ class NMF(TopicModeling):
 
         for topic in nmf.components_:
             topics.append(
-                [self.vocab[i] for i in topic.argsort()[:-n_top_words - 1:-1]]
+                [self.vocab[i] for i in topic.argsort()[:-(n_top_words*2) - 1:-1]]
             )
+
+            topics = [[word for word in topic if word][:n_top_words] for topic in topics]
 
         if save_path:
             save_topics(topics, n_top_words, save_path)
