@@ -12,7 +12,7 @@ def read_requirements():
 setup(
     name='topic_modeling_tool',
     version='1.0',
-    packages=['tm_module'],
+    packages=['tm_module', 'tm_module.utils'],
     url='',
     license='',
     author='Antônio Pereira',
