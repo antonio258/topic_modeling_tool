@@ -2,7 +2,6 @@ from gensim.models import KeyedVectors
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
-import scipy.sparse._csr.csr_matrix as csr_type
 from pyjarowinkler import distance
 from sklearn.preprocessing import Normalizer
 import numpy as np
@@ -89,13 +88,13 @@ class CluWords(TopicModeling):
         distances, indices = nbrs.kneighbors(space_vector)
         return distances, indices
 
-    def _compute_tf(self, n_words: int , vocab_cluwords: list, data: csr_type, list_cluwords: np.ndarray):
+    def _compute_tf(self, n_words: int , vocab_cluwords: list, data: csr_matrix, list_cluwords: np.ndarray):
         """Compute the term frequency (tf) of cluwords.
 
         Args:
             n_words (int): The number of cluwords.
             vocab_cluwords (list): The vocabulary of cluwords.
-            data (csr_type): The input data.
+            data (csr_matrix): The input data.
             list_cluwords (np.ndarray): The list of cluwords.
 
         Returns:
@@ -117,12 +116,12 @@ class CluWords(TopicModeling):
         print(cluwords_tf_idf.shape)
         return cluwords_tf_idf, hyp_aux, tf, n_cluwords
 
-    def _compute_idf(self, hyp_aux: csr_type, tf: csr_type, n_documents: int):
+    def _compute_idf(self, hyp_aux: csr_matrix, tf: csr_matrix, n_documents: int):
         """Compute the inverse document frequency (idf) of cluwords.
 
         Args:
-            hyp_aux (csr_type): The hyp_aux matrix.
-            tf (csr_type): The tf matrix.
+            hyp_aux (csr_matrix): The hyp_aux matrix.
+            tf (csr_matrix): The tf matrix.
             n_documents (int): The number of documents.
 
         Returns:
