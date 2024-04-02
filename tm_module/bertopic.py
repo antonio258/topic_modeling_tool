@@ -84,7 +84,7 @@ class BERTopic(TopicModeling):
 
         """
         self.logger.info(f'Fitting the BERTopic model, n_samples={self.n_documents}...')
-        model = BERTopic_(language=kwargs.get('language', 'english'), hdbscan_model=KMeans(n_clusters=n_topics),
+        model = BERTopic_(language=kwargs.get('language', 'english'), nr_topics=n_topics,
                           calculate_probabilities=True, verbose=True, top_n_words=n_top_words)
         model.fit(self.text)
         topics = [x.strip().split(' ')[1:][:n_top_words]
