@@ -50,6 +50,10 @@ class BERTopic(TopicModeling):
         topicnames = ['Topico ' + str(i) for i in model.get_topic_info()["Topic"].values.tolist()]
         papernames = [str(i) for i in ids]
         topic_dist, _ = model.approximate_distribution(data)
+        if "Topico -1" in topicnames:
+            temp_array = 1 - topic_dist.sum(axis=1)
+            topic_dist = np.insert(topic_dist, 0, temp_array, axis=1)
+
         df_document_topic = pd.DataFrame(np.round(topic_dist, 4), columns=topicnames)
         df_document_topic['id'] = papernames
         df_document_topic['dominant_topic'] = model.topics_
