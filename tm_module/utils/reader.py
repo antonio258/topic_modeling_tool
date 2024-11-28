@@ -2,20 +2,23 @@ import pandas as pd
 
 
 class Reader:
-    def __init__(self, path: str = '', data: pd.DataFrame = None, **kwargs):
-        if not path and not data:
+    def __init__(self, path: str = '', data: pd.DataFrame = pd.DataFrame(), **kwargs):
+        if not path and data.empty:
             raise ValueError('Either path or data must be provided')
 
-        if path:
-            if not kwargs.get('text_column'):
-                raise ValueError('text_column must be provided if path is provided')
+        if not data.empty:
+            self.data = data
+        elif path:
             self.data = pd.read_csv(path, sep=kwargs.get('sep', ','))
-            self.text = self.data[kwargs.get('text_column')]
-            self.n_documents = len(self.text)
-            if ids := kwargs.get('id_column'):
-                self.ids = self.data[ids]
-            else:
-                self.ids = list(range(self.n_documents))
+
+        if not kwargs.get('text_column'):
+            raise ValueError('text_column must be provided if path is provided')
+        self.text = self.data[kwargs.get('text_column')]
+        self.n_documents = len(self.text)
+        if ids := kwargs.get('id_column'):
+            self.ids = self.data[ids]
+        else:
+            self.ids = list(range(self.n_documents))
 
     def get_text(self):
         return self.text

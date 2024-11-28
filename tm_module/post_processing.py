@@ -72,3 +72,32 @@ def save_topics(topics, n_top_words, results_path, vocabulary_embedding=''):
 
             f_res.write('\n')
         f_res.close()
+
+
+def clean_topics(topics: list, n_top_words: int):
+    """Clean the topics by removing duplicate and short words.
+
+    Args:
+        topics (list): The list of topics.
+        n_top_words (int): The number of top words to keep for each topic.
+
+    Returns:
+        list: The cleaned topics.
+
+    """
+    topics_out = []
+    for topic in topics:
+        topic_t = [x for x in topic if x and len(x) > 1]
+        topics_out.append(topic_t)
+
+    for index, topic in enumerate(topics_out):
+        filtered_topic = []
+        insert_word = np.ones(len(topic))
+        for w_i in range(0, len(topic) - 1):
+            if insert_word[w_i]:
+                filtered_topic.append(topic[w_i])
+                for w_j in range((w_i + 1), len(topic)):
+                    if distance.get_jaro_distance(topic[w_i], topic[w_j], winkler=True, scaling=0.1) > 0.75:
+                        insert_word[w_j] = 0
+        topics_out[index] = filtered_topic[:n_top_words]
+    return topics_out

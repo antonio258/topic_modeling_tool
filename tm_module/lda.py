@@ -1,5 +1,5 @@
 from tm_module.topic_modeling import TopicModeling
-from tm_module.post_processing import save_topics, dominant_topics
+from tm_module.post_processing import save_topics, dominant_topics, clean_topics
 from tm_module.utils.logger import Logger
 from sklearn.decomposition import LatentDirichletAllocation as LDA_sklearn
 from sklearn.feature_extraction.text import CountVectorizer
@@ -30,10 +30,11 @@ class LDA(TopicModeling):
         The vocabulary is extracted from the vectorizer.
 
         """
-        vectorizer = CountVectorizer(encoding='utf-8',
-                                     analyzer='word',
-                                     stop_words=None,
-                                     tokenizer=lambda x: x.split(' '))
+        vectorizer = CountVectorizer(
+            max_df=0.95,
+            min_df=2,
+            tokenizer=lambda x: x.split(' ')
+        )
         self.matrix = vectorizer.fit_transform(self.text)
         self.vocab = vectorizer.get_feature_names_out()
 
@@ -67,7 +68,9 @@ class LDA(TopicModeling):
                 [self.vocab[i] for i in topic.argsort()[:-(n_top_words*2) - 1:-1]]
             )
 
-        topics = [[word for word in topic if word][:n_top_words] for topic in topics]
+        topics = [[word for word in topic if word][:(n_top_words*2)] for topic in topics]
+        topics = clean_topics(topics, n_top_words)
+
         if save_path:
             save_topics(topics, n_top_words, save_path)
             dominant_topics(lda, self.matrix, save_path, self.text, self.ids)

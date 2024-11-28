@@ -1,5 +1,5 @@
 from tm_module.topic_modeling import TopicModeling
-from tm_module.post_processing import save_topics, dominant_topics
+from tm_module.post_processing import save_topics, dominant_topics, clean_topics
 from tm_module.utils.logger import Logger
 from sklearn.cluster import KMeans
 from bertopic import BERTopic as BERTopic_
@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from tm_module.norm_entity import norm_entity
 from tm_module.post_processing import save_topics
 from tm_module.utils.reader import Reader
+from sklearn.cluster import AgglomerativeClustering
 
 class BERTopic(TopicModeling):
     """BERTopic is a class that represents a topic modeling model based on BERT embeddings.
@@ -87,12 +88,35 @@ class BERTopic(TopicModeling):
             list: The generated topics.
 
         """
+
+        embedding_model = kwargs.get('embedding_model', 'all-MiniLM-L6-v2')
+        if embedding_model == 'distilbert-base-cased':
+            from transformers.pipelines import pipeline
+
+            embedding_model = pipeline("feature-extraction", model="distilbert-base-cased")
         self.logger.info(f'Fitting the BERTopic model, n_samples={self.n_documents}...')
-        model = BERTopic_(language=kwargs.get('language', 'english'), nr_topics=n_topics,
-                          calculate_probabilities=True, verbose=True, top_n_words=n_top_words)
+        cluster_method = kwargs.get("cluster", "hdbscan")
+        if cluster_method == "hdbscan":
+            model = BERTopic_(language=kwargs.get('language', 'english'), nr_topics=n_topics,
+                              calculate_probabilities=True, verbose=True, top_n_words=n_top_words*2,
+                              embedding_model=embedding_model)
+        elif cluster_method == "kmeans":
+            cluster_model = KMeans(n_clusters=n_topics)
+            model = BERTopic_(language=kwargs.get('language', 'english'), calculate_probabilities=True,
+                              verbose=True, top_n_words=n_top_words*2,
+                              hdbscan_model=cluster_model,
+                              embedding_model=embedding_model)
+        elif cluster_method == "aglomerative":
+            cluster_model = AgglomerativeClustering(n_clusters=n_topics)
+            model = BERTopic_(language=kwargs.get('language', 'english'), calculate_probabilities=True,
+                              verbose=True, top_n_words=n_top_words*2,
+                              hdbscan_model=cluster_model,
+                              embedding_model=embedding_model)
+
         model.fit(self.text)
-        topics = [x.strip().split(' ')[1:][:n_top_words]
+        topics = [x.strip().split(' ')[1:][:(n_top_words*2)]
                   for x in model.generate_topic_labels(nr_words=kwargs.get("n_words_clean", 101), separator=" ")]
+        topics = clean_topics(topics, n_top_words)
         if save_path:
             save_topics(topics, n_top_words, save_path)
             self._dominant_topics(model, self.text, save_path, self.ids)

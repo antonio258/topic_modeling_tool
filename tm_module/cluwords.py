@@ -2,10 +2,9 @@ from gensim.models import KeyedVectors
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
-from pyjarowinkler import distance
 from sklearn.preprocessing import Normalizer
 import numpy as np
-from tm_module.post_processing import save_topics, dominant_topics
+from tm_module.post_processing import save_topics, dominant_topics, clean_topics
 from sklearn.decomposition import NMF as NMF_sklearn
 import warnings
 import time
@@ -103,14 +102,14 @@ class CluWords(TopicModeling):
         """
         tf_vectorizer = CountVectorizer(max_features=n_words, binary=False, vocabulary=vocab_cluwords,
                                         tokenizer=lambda x: x.split(' '))
-        tf = csr_matrix(tf_vectorizer.fit_transform(data), dtype=np.float16)
+        tf = csr_matrix(tf_vectorizer.fit_transform(data), dtype=np.float32)
         n_cluwords = len(vocab_cluwords)
         self.logger.info(f'tf shape {tf.shape}')
         hyp_aux = []
         for w in range(0, n_cluwords):
-            hyp_aux.append(np.asarray(list_cluwords[w], dtype=np.float16))
-        hyp_aux = np.asarray(hyp_aux, dtype=np.float16)
-        hyp_aux = csr_matrix(hyp_aux, shape=hyp_aux.shape, dtype=np.float16)  # ?test sparse matrix!
+            hyp_aux.append(np.asarray(list_cluwords[w], dtype=np.float32))
+        hyp_aux = np.asarray(hyp_aux, dtype=np.float32)
+        hyp_aux = csr_matrix(hyp_aux, shape=hyp_aux.shape, dtype=np.float32)  # ?test sparse matrix!
 
         cluwords_tf_idf = tf.dot(hyp_aux.transpose())
         print(cluwords_tf_idf.shape)
@@ -175,35 +174,6 @@ class CluWords(TopicModeling):
         return normalize.fit_transform(X)
 
     @staticmethod
-    def _clean_topics(topics: list, n_top_words: int):
-        """Clean the topics by removing duplicate and short words.
-
-        Args:
-            topics (list): The list of topics.
-            n_top_words (int): The number of top words to keep for each topic.
-
-        Returns:
-            list: The cleaned topics.
-
-        """
-        topics_out = []
-        for topic in topics:
-            topic_t = [x for x in topic if x and len(x) > 1]
-            topics_out.append(topic_t)
-
-        for index, topic in enumerate(topics_out):
-            filtered_topic = []
-            insert_word = np.ones(len(topic))
-            for w_i in range(0, len(topic) - 1):
-                if insert_word[w_i]:
-                    filtered_topic.append(topic[w_i])
-                    for w_j in range((w_i + 1), len(topic)):
-                        if distance.get_jaro_distance(topic[w_i], topic[w_j], winkler=True, scaling=0.1) > 0.75:
-                            insert_word[w_j] = 0
-            topics_out[index] = filtered_topic[:n_top_words]
-        return topics_out
-
-    @staticmethod
     def _filter_cluwords(n_words: int, threshold: float, indices: np.ndarray, distances: np.ndarray):
         """Filter the cluwords based on a similarity threshold.
 
@@ -233,7 +203,7 @@ class CluWords(TopicModeling):
         return list_cluwords
 
     def generate_representation(self, embedding_file: str, embedding_binary: bool, k_neighbors: int,
-                                n_threads: int, threshold: float, norm: str = "l2"):
+                                n_threads: int, threshold: float, norm: str | None = None):
         """Generate the topic representation using CluWords algorithm.
 
         Args:
@@ -242,7 +212,7 @@ class CluWords(TopicModeling):
             k_neighbors (int): The number of nearest neighbors to consider.
             n_threads (int): The number of threads to use for computation.
             threshold (float): The similarity threshold for filtering cluwords.
-            norm (str, optional): The normalization method for tf-idf matrix. Defaults to "l2".
+            norm (str, optional): The normalization method for tf-idf matrix. Defaults to None.
 
         """
         t1 = time.time()
@@ -310,7 +280,7 @@ class CluWords(TopicModeling):
             topics.append(
                 [self.vocab[i] for i in topic.argsort()[:-kwargs.get("n_words_clean", 101) - 1:-1]]
             )
-        topics = self._clean_topics(topics, n_top_words)
+        topics = clean_topics(topics, n_top_words)
         if save_path:
             save_topics(topics, n_top_words, save_path)
             dominant_topics(nmf, self.matrix, save_path, self.text, self.ids)

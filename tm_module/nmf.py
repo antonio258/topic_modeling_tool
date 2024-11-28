@@ -1,5 +1,5 @@
 from tm_module.topic_modeling import TopicModeling
-from tm_module.post_processing import save_topics, dominant_topics
+from tm_module.post_processing import save_topics, dominant_topics, clean_topics
 from tm_module.utils.logger import Logger
 from sklearn.decomposition import NMF as NMF_sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -62,7 +62,8 @@ class NMF(TopicModeling):
                 [self.vocab[i] for i in topic.argsort()[:-(n_top_words*2) - 1:-1]]
             )
 
-            topics = [[word for word in topic if word][:n_top_words] for topic in topics]
+        topics = [[word for word in topic if word][:(n_top_words*2)] for topic in topics]
+        topics = clean_topics(topics, n_top_words)
 
         if save_path:
             save_topics(topics, n_top_words, save_path)
